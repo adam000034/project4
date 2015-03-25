@@ -1,3 +1,8 @@
+/* 
+ * PROJECT 3
+ * AUTHORS: Austin Au-Yeung, Adam Toth-Fejel
+ */
+ 
 options {
   IGNORE_CASE=true;
 }
@@ -138,18 +143,16 @@ ASTFunctionDefinition functionprototypeordefinition() :
 ASTFormals formalparameterlist() :
 {ASTFormals formals = new ASTFormals(); ASTFormal formal = null;}
 {
-	(formal = formalparameter()) {if (formal != null) {formals.addElement(formal);}}((<COMMA> formal = formalparameter())*) {if (formal != null) {formals.addElement(formal);}}
+	(formal = formalparameter()) {if (formal != null) {formals.addElement(formal);}}
+	((<COMMA> formal = formalparameter() {if (formal != null) {formals.addElement(formal);}})*) 
 	{return formals;}
 }
 
 ASTFormal formalparameter() :
-{ASTFormal returnformal = null; Token type; Token name; boolean checker = false;}
+{Token type; Token name; int arraydimension = 0;}
 {
-	type = <IDENTIFIER> name = <IDENTIFIER> variabledeclarations()
-	{	if (checker)
-			returnformal = new ASTFormal(type.image, name.image, type.beginLine);
-	}
-	{return returnformal;}
+	type = <IDENTIFIER> name = <IDENTIFIER> arraydimension = variabledeclarations()
+	{return new ASTFormal(type.image, name.image, arraydimension, type.beginLine);}
 }
 
 int variabledeclarations() :
