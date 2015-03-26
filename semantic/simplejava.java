@@ -139,19 +139,17 @@ if (formal != null) {formals.addElement(formal);}
       }
       jj_consume_token(COMMA);
       formal = formalparameter();
-    }
 if (formal != null) {formals.addElement(formal);}
+    }
 {if ("" != null) return formals;}
     throw new Error("Missing return statement in function");
   }
 
-  static final public ASTFormal formalparameter() throws ParseException {ASTFormal returnformal = null; Token type; Token name; boolean checker = false;
+  static final public ASTFormal formalparameter() throws ParseException {Token type; Token name; int arraydimension = 0;
     type = jj_consume_token(IDENTIFIER);
     name = jj_consume_token(IDENTIFIER);
-    variabledeclarations();
-if (checker)
-                        returnformal = new ASTFormal(type.image, name.image, type.beginLine);
-{if ("" != null) return returnformal;}
+    arraydimension = variabledeclarations();
+{if ("" != null) return new ASTFormal(type.image, name.image, arraydimension, type.beginLine);}
     throw new Error("Missing return statement in function");
   }
 
