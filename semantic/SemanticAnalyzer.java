@@ -28,7 +28,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         
         if (lhs != rhs) {
             CompError.message(assignstatement.line(), "Lefthand side and righthand "
-                    + "side of and assignement statemetn must match.");
+                    + "side of and assignement statement must match.");
         }
         return null;
     }
