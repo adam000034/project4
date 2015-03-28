@@ -55,8 +55,7 @@ public class ASTPrintTree implements  ASTVisitor {
 
     public Object VisitClasses(ASTClasses classes) { 
 	int i;
-
-	for (i=0; i<classes.size();i++) 
+    for (i=0; i<classes.size();i++)
 	    classes.elementAt(i).Accept(this);
 	return null;
     }
