@@ -1,6 +1,3 @@
-import com.sun.jdi.IntegerType;
-import jdk.nashorn.internal.codegen.types.BooleanType;
-
 import java.util.Vector;
 
 public class SemanticAnalyzer implements ASTVisitor {
@@ -25,7 +22,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitClasses(ASTClasses classes){
-        for (i = 0; i <classes.size(); i++) {
+        for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
         }
         return null;
@@ -43,8 +40,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
-        array.base().Accept(this);
-        array.index().Accept(this);
+        arrayvariable.base().Accept(this);
+        arrayvariable.index().Accept(this);
         return null;
     }
     
@@ -75,7 +72,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitForStatement(ASTForStatement forstatement) {
-        forstatement.initialize.Accept(this);
+        forstatement.initialize().Accept(this);
         forstatement.test().Accept(this);
         forstatement.increment().Accept(this);
         forstatement.body().Accept(this);
@@ -102,7 +99,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitFormals(ASTFormals formals) {
         if ((formals == null) || formals.size() == 0)
             return null;
-        for (i=0; i<formals.size(); i++) {
+        for (int i=0; i<formals.size(); i++) {
             formals.elementAt(i).Accept(this);
         }
         return null;
@@ -116,14 +113,14 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
-        for (i=0; i<functioncall.size(); i++)
-            functioncall.elementAt(i).Accept(this);
+        for (int i=0; i<callexpression.size(); i++)
+            callexpression.elementAt(i).Accept(this);
         return null;
     }
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
-        for (i=0; i<functioncall.size(); i++)
-            functioncall.elementAt(i).Accept(this);
+        for (int i=0; i<statement.size(); i++)
+            statement.elementAt(i).Accept(this);
         return null;
     }
     
@@ -136,10 +133,10 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitNewClassExpression(ASTNewClassExpression classexpression) {
-        int i;
+        /*int i;
         for (i=0; i<variabledefs.size(); i++) {
             variabledefs.elementAt(i).Accept(this);
-        }
+        }*/
         return null;
     }
     
@@ -190,8 +187,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
         int i;
-        for (i=0; i < functiondefs.size(); i++)
-            functiondefs.elementAt(i).Accept(this);
+        for (i=0; i < fundefinitions.size(); i++)
+            fundefinitions.elementAt(i).Accept(this);
         return null;
     }
     
@@ -203,7 +200,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitPrototype(ASTPrototype prototype) {
         if (prototype.formals() != null) {
-            for (i=0; i < prototype.formals().size(); i++)
+            for (int i=0; i < prototype.formals().size(); i++)
                 prototype.formals().elementAt(i).Accept(this);
 
         }
@@ -211,14 +208,15 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitUnaryOperatorExpression(ASTUnaryOperatorExpression unaryexpression) {
-        operator.operand().Accept(this);
+        unaryexpression.operand().Accept(this);
+        //Deal with logical "NOT"
         //Include negative sign?
         return null;
     }
     
     public Object VisitStatements(ASTStatements statements) {
         //May need indents but I don't think so
-        for (i = 0; i<statements.size(); i++) {
+        for (int i = 0; i<statements.size(); i++) {
             statements.elementAt(i).Accept(this);
         }
         return null;
@@ -230,16 +228,14 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
-        indentlevel++;
-        Type visitvariabletype = (Type) varstatement.test().Accept(this);
+        Type visitvariabletype = (Type) varstatement.Accept(this);
 
         if (visitvariabletype == BooleanType.instance() ||
                 visitvariabletype == IntegerType.instance()) {
-            CompError.message(varstatement.line, "Variable cannot be an int or a boolean.");
+            CompError.message(varstatement.line(), "Variable cannot be an int or a boolean.");
         }
 
         //if (varstatement)
-        indentlevel--;
 
         return null;
 
@@ -252,7 +248,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
-        Print("While (test/body)");
+        System.out.println("While (test/body)");
         indentlevel++;
         Type test = (Type) whilestatement.test().Accept(this);
 
