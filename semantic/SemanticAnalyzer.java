@@ -6,9 +6,6 @@ public class SemanticAnalyzer implements ASTVisitor {
     private FunctionEnvironment functionEnv;
     private TypeEnvironment typeEnv;
 
-    int indentlevel = 0;
-
-
     public SemanticAnalyzer() {
         variableEnv = new VariableEnvironment();
         functionEnv = new FunctionEnvironment();
@@ -17,10 +14,52 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitNewArrayExpression(ASTNewArrayExpression newarrayexpression) {
-        newarrayexpression.elements().Accept(this);
-        return null;
+       Type size = (Type) newarrayexpression.elements().Accept(this);
+               
+        if (size != IntegerType.instance()) {
+            CompError.message(newarrayexpression.line(), "Array size must be an integer.");
+            return IntegerType.instance();
+        } else {
+            //type is base type (i.e. int for int[][])
+            return insertArrayType(newarrayexpression.type(), newarrayexpression.arraydimension());
+        }        
     }
     
+    /**
+     * Adds all brackets to base type for array type. 
+     * 
+     * If entry does not exist in Type Environment,
+     * recursively calls itself with an array dimension - 1. This ensures that all array types with
+     * same base but less array dimension will be added if they are missing. It then creates a new
+     * ArrayType instance by passing in the Type instance in from the ArrayType with one less array
+     * dimensionality into the ArrayType constructor. This new ArrayType instance is inserted into
+     * the Type Environment with the key <basetype + ("[]" * arraydimension)>, and is then returned.
+     * 
+     * However, if the entry exists, it is returned. 
+     * 
+     * @param type - base type of array
+     * @param arraydimension
+     * @return ArrayType entry for the specific array with base type "type" and the provided array
+     * dimensionality.
+     */
+    public ArrayType insertArrayType(String type, int arraydimension) {
+        String thisType = type;
+        for (int i = 0; i < arraydimension; i++) {
+            thisType += "[]";
+        }
+        ArrayType entry = (ArrayType) typeEnv.find(thisType);
+        //if type is not in type environment, recursive call to add it
+        //will add previous dimensional ones if not in environment either
+        if (entry == null) {
+            ArrayType prevDimTypeEntry = insertArrayType(type, arraydimension - 1);
+            ArrayType arrTypeInstance = new ArrayType(prevDimTypeEntry);
+            typeEnv.insert(thisType, arrTypeInstance);
+            return arrTypeInstance;
+        } else {
+            return entry;
+        }
+    }
+        
     public Object VisitClasses(ASTClasses classes){
         for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
@@ -85,7 +124,6 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitDoWhileStatement(ASTDoWhileStatement dowhile) {
-        //NO INDENT IS NECESSARY HERE
         dowhile.test().Accept(this);
         dowhile.body().Accept(this);
         return null;
@@ -249,7 +287,6 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
         System.out.println("While (test/body)");
-        indentlevel++;
         Type test = (Type) whilestatement.test().Accept(this);
 
         if (test != BooleanType.instance()) {
@@ -259,7 +296,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (whilestatement.body() != null) {
             whilestatement.body().Accept(this);
         }
-        indentlevel--;
         return null;
 
     }
