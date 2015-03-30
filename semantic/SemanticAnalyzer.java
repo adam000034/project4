@@ -28,7 +28,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             return IntegerType.instance();
         } else {
             //type is base type (i.e. int for int[][])
-            return insertArrayType(newarrayexpression.type(), newarrayexpression.arraydimension());
+            return insertArrayType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
         }        
     }   /* DONE */
     
@@ -46,10 +46,15 @@ public class SemanticAnalyzer implements ASTVisitor {
      * 
      * @param type - base type of array
      * @param arraydimension
+     * @param linenum
      * @return ArrayType entry for the specific array with base type "type" and the provided array
      * dimensionality.
      */
-    public ArrayType insertArrayType(String type, int arraydimension) {
+    public Type insertArrayType(String type, int arraydimension, int linenum) {
+        if (typeEnv.find(type) == null) {
+            CompError.message(linenum, "Base type of array does not exist.");
+            return IntegerType.instance();
+        }
         String thisType = type;
         for (int i = 0; i < arraydimension; i++) {
             thisType += "[]";
@@ -58,7 +63,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         //if type is not in type environment, recursive call to add it
         //will add previous dimensional ones if not in environment either
         if (entry == null) {
-            ArrayType prevDimTypeEntry = insertArrayType(type, arraydimension - 1);
+            ArrayType prevDimTypeEntry = (ArrayType) insertArrayType(type, arraydimension - 1, linenum);
             ArrayType arrTypeInstance = new ArrayType(prevDimTypeEntry);
             typeEnv.insert(thisType, arrTypeInstance);
             return arrTypeInstance;
@@ -121,6 +126,13 @@ public class SemanticAnalyzer implements ASTVisitor {
             for (int i = 0; i < variabledefs.size(); i++) {
                 vardef = variabledefs.elementAt(i);
                 type = typeEnv.find(vardef.type());
+                //If there is a variable def of same name already in the class's variable enviro,
+                //give an error
+                if (variables.find(vardef.name()) != null) {
+                    CompError.message(vardef.line(), "Cannot have 2 instance variables"
+                            + "of the same name within the same class.");
+                    return IntegerType.instance();
+                }
                 variables.insert(vardef.name(), new VariableEntry(type));
             }
         }
@@ -128,15 +140,21 @@ public class SemanticAnalyzer implements ASTVisitor {
         //Create new Type entry for class
         typeEnv.insert(asclass.name(), classType);
         return classType;
-    }
+    }   /* DONE */
     
+    /**
+     * Checks to make sure type of definition is in typeEnv. if not, error
+     * 
+     * @param variabledef
+     * @return IntegerType instance if type is n
+     */
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
+        return insertArrayType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
         //this may apply to all but we need to store the bracket count to be
         //retrieved later from the parse table
         //what do we store here
-        return null;
-    }
+    }   /* DONE */
     
     public Object VisitClassVariable(ASTClassVariable classvar){
         Type base = (Type) classvar.base().Accept(this);
@@ -201,7 +219,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (i=0; i<variabledefs.size(); i++) {
             variabledefs.elementAt(i).Accept(this);
         }
-        //TODO: check to make sure type of definitions are in typeEnv. if not, error
         return null;
     }
     
