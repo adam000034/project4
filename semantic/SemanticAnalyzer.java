@@ -52,7 +52,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Type insertArrayType(String type, int arraydimension, int linenum) {
         if (typeEnv.find(type) == null) {
-            CompError.message(linenum, "Base type of array does not exist.");
+            CompError.message(linenum, "Base Type does not exist.");
             return IntegerType.instance();
         }
         String thisType = type;
@@ -93,6 +93,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
         arrayvariable.base().Accept(this);
         arrayvariable.index().Accept(this);
+        //TODO: Check if index goes over size?
         return null;
     }
     
@@ -163,28 +164,30 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitForStatement(ASTForStatement forstatement) {
+        variableEnv.beginScope();
         forstatement.initialize().Accept(this);
         forstatement.test().Accept(this);
         forstatement.increment().Accept(this);
         forstatement.body().Accept(this);
+        variableEnv.endScope();
         return null;
     }
     
     public Object VisitEmptyStatement(ASTEmptyStatement emptystate) {
-        //WHAT DO WE RETURN HERE
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitDoWhileStatement(ASTDoWhileStatement dowhile) {
         dowhile.test().Accept(this);
+        variableEnv.beginScope();
         dowhile.body().Accept(this);
+        variableEnv.endScope();
         return null;
     }
     
     public Object VisitFormal(ASTFormal formal) {
-        //COUNT BRACKETS I THINK
-        return null;
-    }
+        return insertArrayType(formal.type(), formal.arraydimension(), formal.line());
+    }   /* Done */
     
     public Object VisitFormals(ASTFormals formals) {
         if ((formals == null) || formals.size() == 0)
