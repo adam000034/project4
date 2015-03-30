@@ -13,6 +13,13 @@ public class SemanticAnalyzer implements ASTVisitor {
         typeEnv = new TypeEnvironment();
     }
     
+    /**
+     * Checks if size element of array is an integer. Gives error if not. If it is an integer, adds
+     * type to type environment if it does not exist.
+     * 
+     * @param newarrayexpression
+     * @return Integer instance if error, instance of ArrayType object if not
+     */
     public Object VisitNewArrayExpression(ASTNewArrayExpression newarrayexpression) {
        Type size = (Type) newarrayexpression.elements().Accept(this);
                
@@ -23,7 +30,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             //type is base type (i.e. int for int[][])
             return insertArrayType(newarrayexpression.type(), newarrayexpression.arraydimension());
         }        
-    }
+    }   /* DONE */
     
     /**
      * Adds all brackets to base type for array type. 
@@ -58,14 +65,14 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return entry;
         }
-    }
+    }   /* DONE */
         
     public Object VisitClasses(ASTClasses classes){
         for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
         }
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitAssignmentStatement(ASTAssignmentStatement assignstatement) {
         Type lhs = (Type) assignstatement.variable().Accept(this);
@@ -76,7 +83,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                     + "side of and assignement statement must match.");
         }
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
         arrayvariable.base().Accept(this);
@@ -85,15 +92,42 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitBooleanLiteral(ASTBooleanLiteral boolliteral) {
-        //done
         return BooleanType.instance();
-    }
+    }   /* DONE */
     
+    /**
+     * Creates a new variable environment for the class type, goes through each
+     * variable definition and inserts it into class's variable environment, then
+     * creates new ClassType and inserts it into global type environment.
+     * 
+     * @param asclass
+     * @return IntegerType instance if error, else ClassType
+     */
     public Object VisitClass(ASTClass asclass) {
-        if (asclass.variabledefs() != null) {
-            asclass.variabledefs().Accept(this);
+        if (typeEnv.find(asclass.name()) != null) {
+            CompError.message(asclass.line(), "Cannot have classes with the same name.");
+            return IntegerType.instance();
         }
-        return null;
+        
+        VariableEnvironment variables = new VariableEnvironment();
+        
+        ASTInstanceVariableDefs variabledefs = asclass.variabledefs();
+        Type type;
+        if (variabledefs != null) {
+            variabledefs.Accept(this);
+            //Go through each variable definition and insert it into class's 
+            //variable environment
+            ASTInstanceVariableDef vardef;
+            for (int i = 0; i < variabledefs.size(); i++) {
+                vardef = variabledefs.elementAt(i);
+                type = typeEnv.find(vardef.type());
+                variables.insert(vardef.name(), new VariableEntry(type));
+            }
+        }
+        ClassType classType = new ClassType(variables);
+        //Create new Type entry for class
+        typeEnv.insert(asclass.name(), classType);
+        return classType;
     }
     
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
@@ -167,6 +201,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (i=0; i<variabledefs.size(); i++) {
             variabledefs.elementAt(i).Accept(this);
         }
+        //TODO: check to make sure type of definitions are in typeEnv. if not, error
         return null;
     }
     
@@ -221,7 +256,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
                 
         return IntegerType.instance();
-    }
+    }   /* DONE */
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
         int i;
@@ -301,9 +336,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
-
         return IntegerType.instance();
-    }
+    }   /* DONE */
 
     public Object VisitBaseVariable(ASTBaseVariable base) {
         VariableEntry baseEntry = variableEnv.find(base.name());
@@ -314,7 +348,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         } else {
             return baseEntry.type();
         }
-    }
+    }   /* DONE */
 
     public Object VisitIfStatement(ASTIfStatement ifsmt) {
 
