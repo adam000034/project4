@@ -481,9 +481,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
-        //TODO: Compare return type of specific function in environment and type of the expression being returned.
-        //      Error if they don't match.
-        ///////////
+        //Compare return type of specific function in environment and type of the expression being returned.
+        //Error if they don't match.
         //retrieve the type of the function by looking up return in the variable environment
         VariableEntry returnEntry = variableEnv.find("return");
         //compare this type with the typeof returnstatement
@@ -493,8 +492,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                               + "does not match with the type given to the function.");
         }
         return null;
-        //DONE//
-    }
+    }   /* DONE */
     
     /**
      * Adds a description of this function to the function environment
@@ -518,11 +516,24 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitUnaryOperatorExpression(ASTUnaryOperatorExpression unaryexpression) {
-        unaryexpression.operand().Accept(this);
         //Deal with logical "NOT"
-        //Include negative sign?
-        return null;
-    }
+        
+        Type operand = (Type) unaryexpression.operand().Accept(this);
+        
+        switch (unaryexpression.operator()) {
+            case ASTUnaryOperatorExpression.BAD_OPERATOR:    // Is this necessary?
+                return IntegerType.instance();
+                
+            case ASTUnaryOperatorExpression.NOT:
+                if (operand != BooleanType.instance()) {
+                    CompError.message(unaryexpression.line(), "NOT operators requires "
+                            + "a boolean operand");
+                    return IntegerType.instance();
+                }
+                return BooleanType.instance();
+        }
+        return IntegerType.instance();
+    }   /* DONE */
     
     public Object VisitStatements(ASTStatements statements) {
         //May need indents but I don't think so
@@ -533,7 +544,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
-        (Type) variableexpression = (Type) varexpression.variable().Accept(this);
+        Type variableexpression = (Type) varexpression.variable().Accept(this);
         return variableexpression;
         //DONE//
     }
