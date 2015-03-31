@@ -249,6 +249,11 @@ public class SemanticAnalyzer implements ASTVisitor {
                
         //Add formals to variable environment if option is set to true
         if (addFormalsToVarEnv) {
+            if (variableEnv.find(formal.name()) != null) {
+                CompError.message(formal.line(), "Cannot have 2 formals"
+                        + "of the same name for the same function.");
+                return IntegerType.instance();
+            }
             variableEnv.insert(formal.name(), new VariableEntry(type));
         }     
         return type;
@@ -536,38 +541,33 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitStatements(ASTStatements statements) {
-        //May need indents but I don't think so
         for (int i = 0; i<statements.size(); i++) {
             statements.elementAt(i).Accept(this);
         }
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
         Type variableexpression = (Type) varexpression.variable().Accept(this);
         return variableexpression;
-        //DONE//
-    }
+    }   /* DONE */
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
-        Type visitvariabletype = (Type) varstatement.Accept(this);
-
-        if (visitvariabletype == BooleanType.instance() ||
-                visitvariabletype == IntegerType.instance()) {
-            CompError.message(varstatement.line(), "Variable cannot be an int or a boolean.");
+        //Checks Type
+        insertArrayType(varstatement.name(), varstatement.arraydimension(), varstatement.line());
+        //Check variable name
+        if (variableEnv.find(varstatement.name()) != null) {
+            CompError.message(varstatement.line(), "Duplicate local variable " + 
+                    varstatement.name() + ".");
         }
-
-        //if (varstatement)
-
         return null;
-
-    }
+    }   /* DONE */
 
     public Object VisitProgram(ASTProgram program) {
         program.classes().Accept(this);
         program.functiondefinitions().Accept(this);
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
         System.out.println("While (test/body)");
@@ -578,7 +578,9 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         if (whilestatement.body() != null) {
+            variableEnv.beginScope();
             whilestatement.body().Accept(this);
+            variableEnv.endScope();
         }
         return null;
 
