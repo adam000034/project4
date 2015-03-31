@@ -5,12 +5,15 @@ public class SemanticAnalyzer implements ASTVisitor {
     private VariableEnvironment variableEnv;
     private FunctionEnvironment functionEnv;
     private TypeEnvironment typeEnv;
+    
+    private boolean addFormalsToVarEnv;
 
     public SemanticAnalyzer() {
         variableEnv = new VariableEnvironment();
         functionEnv = new FunctionEnvironment();
         functionEnv.addBuiltinFunctions();
         typeEnv = new TypeEnvironment();
+        addFormalsToVarEnv = false;
     }
     
     /**
@@ -71,14 +74,26 @@ public class SemanticAnalyzer implements ASTVisitor {
             return entry;
         }
     }   /* DONE */
-        
+    
+    /**
+     * Visits each class.
+     * 
+     * @param classes
+     */
     public Object VisitClasses(ASTClasses classes){
         for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
         }
+        //TODO: do we need to start a new function environment for each class?
         return null;
     }   /* DONE */
     
+    /**
+     * Checks that types of left-hand side and right-hand side of the Assignement
+     * statement are the same.
+     * 
+     * @param assignstatement
+     */
     public Object VisitAssignmentStatement(ASTAssignmentStatement assignstatement) {
         Type lhs = (Type) assignstatement.variable().Accept(this);
         Type rhs = (Type) assignstatement.value().Accept(this);
@@ -90,13 +105,28 @@ public class SemanticAnalyzer implements ASTVisitor {
         return null;
     }   /* DONE */
     
+    /**
+     * Checks base variable and checks if index is an integer.
+     * 
+     * @param arrayvariable
+     */
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
         arrayvariable.base().Accept(this);
-        arrayvariable.index().Accept(this);
-        //TODO: Check if index goes over size?
+        Type typeOfIndex = (Type) arrayvariable.index().Accept(this);
+        
+        if (typeOfIndex != IntegerType.instance()) {
+            CompError.message(arrayvariable.line(), "Index of an array must by of "
+                    + "type integer.");
+        }
         return null;
-    }
+    }   /* DONE */
     
+    /**
+     * Returns the instance of BooleanType.
+     * 
+     * @param booliteral
+     * @return BooleanType's instance
+     */
     public Object VisitBooleanLiteral(ASTBooleanLiteral boolliteral) {
         return BooleanType.instance();
     }   /* DONE */
@@ -157,12 +187,23 @@ public class SemanticAnalyzer implements ASTVisitor {
         //what do we store here
     }   /* DONE */
     
+    /**
+     * Calls accept on base variable.
+     * 
+     * @param classvar
+     */
     public Object VisitClassVariable(ASTClassVariable classvar){
-        Type base = (Type) classvar.base().Accept(this);
-        //TODO: cont.
+        classvar.base().Accept(this);
         return null;
-    }
+    }   /* DONE */
     
+    /**
+     * Begins new scope on the variable environment, calls Accept() of 
+     * the iterator initialization statement, the test, the increment 
+     * statement, and the body, then ends scope.
+     * 
+     * @param forstatement
+     */
     public Object VisitForStatement(ASTForStatement forstatement) {
         variableEnv.beginScope();
         forstatement.initialize().Accept(this);
@@ -171,39 +212,154 @@ public class SemanticAnalyzer implements ASTVisitor {
         forstatement.body().Accept(this);
         variableEnv.endScope();
         return null;
-    }
+    }   /* DONE */
     
+    /**
+     * Returns null. There is nothing to be done for an empty statement.
+     * 
+     * @param emptystate
+     */
     public Object VisitEmptyStatement(ASTEmptyStatement emptystate) {
         return null;
     }   /* DONE */
-    
+        
+    /**
+     * Begins new scope on the variable environment, calls Accept() of 
+     * the test and the body, then ends scope.
+     * 
+     * @param dowhile
+     */
     public Object VisitDoWhileStatement(ASTDoWhileStatement dowhile) {
-        dowhile.test().Accept(this);
         variableEnv.beginScope();
+        dowhile.test().Accept(this);
         dowhile.body().Accept(this);
         variableEnv.endScope();
         return null;
-    }
+    }   /* DONE */
     
+    /**
+     * Checks that formal is correct by calling helper method insertArrayType()
+     * 
+     * @param formal
+     * @return Type of formal. If Integer, may be error.
+     */
     public Object VisitFormal(ASTFormal formal) {
-        return insertArrayType(formal.type(), formal.arraydimension(), formal.line());
-    }   /* Done */
+        Type type = insertArrayType(formal.type(), formal.arraydimension(), formal.line());
+               
+        //Add formals to variable environment if option is set to true
+        if (addFormalsToVarEnv) {
+            variableEnv.insert(formal.name(), new VariableEntry(type));
+        }     
+        return type;
+    }   /* DONE */
     
+    /**
+     * Visits each formal.
+     * 
+     * @param formals
+     */
     public Object VisitFormals(ASTFormals formals) {
-        if ((formals == null) || formals.size() == 0)
-            return null;
-        for (int i=0; i<formals.size(); i++) {
-            formals.elementAt(i).Accept(this);
+        if (formals != null) {  /* also had formals.size() == 0 but removed it */
+            for (int i=0; i<formals.size(); i++) {
+                formals.elementAt(i).Accept(this);
+            }
         }
         return null;
-    }
+    }   /* DONE */
     
+    /**
+     * If prototype already exists, compares prototype and function
+     * - compares number of formals
+     * - compares types of each formal
+     * - compares return types
+     * Else,
+     * - checks if return type exists 
+     * - setup: sets hasPrototype to false so that function entry will be added later
+     * 
+     * Begins a new scope in variable environment.
+     * Adds formals to variable environment:     addFormalsToVarEnv = true
+     * Adds function entry to function environment if no prototype.
+     * Sets addFormalsToVarEnv to false.
+     * Analyzes body of function.
+     * Ends scope.
+     * 
+     * @param function
+     */
     public Object VisitFunction(ASTFunction function) {
-        if (function.formals() != null)
-            function.formals().Accept(this);
+        boolean hasPrototype;
+        //Analyze formal parameters & return type
+        FunctionEntry funcEntry = functionEnv.find(function.name());
+        //Check against prototype (if there is one), 
+        if (funcEntry != null) {
+            hasPrototype = true;
+            Vector<Type> funcEntryFormals = funcEntry.formals();      //list of Type objects of function prototype formals
+            ASTFormals functionFormals = function.formals();    //list of ASTFormal objects
+            
+            //- Is the return type the same?
+            if (! funcEntry.result().equals(function.type())) {
+                CompError.message(function.line(), "A function's return type must match"
+                        + "with its function prototype's return type.");
+                return null;
+            }
+            
+            //- Check number of formals
+            if (funcEntryFormals.size() != functionFormals.size()) {
+                CompError.message(function.line(), "A function's formal parameters must match"
+                        + "with its function prototype's formal parameters.");
+                return null;
+            }
+            
+            //- Are the formals the same? -- type
+            for (int i = 0; i < funcEntryFormals.size(); i++) {
+                Type functionFormalType = typeEnv.find(functionFormals.elementAt(i).type());
+                //Check if type doesn't equal it's counterpart in its function prototype
+                //-- don't have to check if type exists because prototype would have done this, just
+                //   comparing types
+                if (! (funcEntryFormals.elementAt(i).equals(functionFormalType))) {
+                    CompError.message(function.line(), "A function's formal parameters must match"
+                            + "with its function prototype's formal parameters.");
+                    return null;
+                }
+            }
+        } else {        //or add function entry to function environment (if no prototype)
+            hasPrototype = false;
+            //check if return type exists
+            if (typeEnv.find(function.type()) == null) {
+                CompError.message(function.line(), "The return type of the funciton is not a valid type.");
+                return null;    //TODO: do we actually return null or integer instance?
+            }
+            //don't add function entry to function enviro yet... 
+            //Add it after VisitFormal adds possible new dimension array types to typeEnv
+        }
+                
+        //Begin a new scope in the variable environment
+        variableEnv.beginScope();       
+        
+        //VisitFormal should add formals to variable environment in this case.
+        addFormalsToVarEnv = true;
+
+        Vector<Type> params = new Vector<Type>();
+        if (function.formals() != null) {
+            Type paramType;
+            for (int i=0; i < function.formals().size(); i++) {
+                //Add formal parameters to the variable environment  
+                paramType = (Type) function.formals().elementAt(i).Accept(this);
+                params.add(paramType);
+            }
+        }
+        //Add function entry to function environment if there is no prototype
+        if (!hasPrototype) {
+            functionEnv.insert(function.name(), new FunctionEntry(typeEnv.find(function.type()), params));
+        }
+        addFormalsToVarEnv = false;
+        
+        //Analyze the body of the function, using modified variable environment
         function.body().Accept(this);
-        return null;
-    }
+        //End current scope in variable environment
+        variableEnv.endScope();
+        
+        return null;    //TODO: or return type of function?
+    }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
         for (int i=0; i<callexpression.size(); i++)
@@ -279,8 +435,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
-        int i;
-        for (i=0; i < fundefinitions.size(); i++)
+        for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
         return null;
     }
@@ -291,14 +446,26 @@ public class SemanticAnalyzer implements ASTVisitor {
         return null;
     }
     
+    /**
+     * Adds a description of this function to the function environment
+     * - Type of each parameter
+     * - Return type of the function
+     * 
+     * @param prototype
+     */
     public Object VisitPrototype(ASTPrototype prototype) {
+        //Add prototype to function environment
+        Vector<Type> params = new Vector<Type>();
         if (prototype.formals() != null) {
-            for (int i=0; i < prototype.formals().size(); i++)
-                prototype.formals().elementAt(i).Accept(this);
-
+            Type paramType;
+            for (int i=0; i < prototype.formals().size(); i++) {
+                paramType = (Type) prototype.formals().elementAt(i).Accept(this);
+                params.add(paramType);
+            }
         }
+        
         return null;
-    }
+    }   /* DONE */
     
     public Object VisitUnaryOperatorExpression(ASTUnaryOperatorExpression unaryexpression) {
         unaryexpression.operand().Accept(this);
