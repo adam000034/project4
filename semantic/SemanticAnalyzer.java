@@ -182,6 +182,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
         return insertArrayType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
+        //TODO: should we even be returning anything?
         //this may apply to all but we need to store the bracket count to be
         //retrieved later from the parse table
         //what do we store here
@@ -373,13 +374,18 @@ public class SemanticAnalyzer implements ASTVisitor {
                               "scope");
             return IntegerType.instance();
         }
+        Type argType;
         for (int i=0; i<callexpression.size(); i++) {
-            //check to see if the parameters used have the types they are supposed to have
-            callexpression.elementAt(i).Accept(this);
+            //check to see if the args used have the types they are supposed to have
+            argType = (Type) callexpression.elementAt(i).Accept(this);
+            if (funcEntry.formals().elementAt(i) != argType) {
+                CompError.message(callexpression.line(), "Argument " + i + " for function " + callexpression.name() + " does not match"
+                        + "its corresponding function parameter's type.");
+                return IntegerType.instance();
+            }
         }
-        return null;
-        //CHECK TO SEE IF DONE
-    }
+        return funcEntry.result();
+    }   /* DONE */
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
         //check to see if function exists in func env.
@@ -387,32 +393,30 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (funcEntry == null) {
             CompError.message(statement.line(), "Function " + statement.name() + " is not defined in this " +
                               "scope");
-            return IntegerType.instance();
         }
-        for (int i=0; i<statement.size(); i++) {
-            //check to see if the parameters used have the types they are supposed to have
-            statement.elementAt(i).Accept(this);
+        Type argType;
+        for (int i=0; i<statement.size(); i++) {           
+            //check to see if the args used have the types they are supposed to have
+            argType = (Type) statement.elementAt(i).Accept(this);
+            if (funcEntry.formals().elementAt(i) != argType) {
+                CompError.message(statement.line(), "Argument " + i + " for function " + statement.name() + " does not match"
+                        + "its corresponding function parameter's type.");
+            }
         }
         return null;
-        //CHECK TO SEE IF DONE
-    }
+    }   /* DONE */
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
-        int i;
-        for (i=0; i<variabledefs.size(); i++) {
-            //go through every variable definition and see if the //
-            // type and the variable exists in their corresponding environments//
+        for (int i=0; i<variabledefs.size(); i++) {
+            //Check if type exists by calling VisitInstanceVariableDef() which calls insertArrayType(), which
+            //checks the type and adds the according n-dimensional array types if the base type exists.
+            //No need to add variable to environment because it is added into a local environment in VisitClass()
             variabledefs.elementAt(i).Accept(this);
         }
         return null;
-        //CHECK TO SEE IF DONE
-    }
+    }   /* DONE */
     
     public Object VisitNewClassExpression(ASTNewClassExpression classexpression) {
-        /*int i;
-        for (i=0; i<variabledefs.size(); i++) {
-            variabledefs.elementAt(i).Accept(this);
-        }*/
         //check to see if the type is valid, in this case the type is a custom class type
         Type classType = typeEnv.find(classexpression.type());
         if (classType == null) {
@@ -422,8 +426,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         return null;
-        //CHECK TO SEE IF DONE
-    }
+    }   /* DONE */
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
         Type lhs = (Type) opexpression.left().Accept(this);
@@ -475,8 +478,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
         return null;
-
-    }
+    }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
         //TODO: Compare return type of specific function in environment and type of the expression being returned.
