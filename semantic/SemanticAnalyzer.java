@@ -277,7 +277,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * - setup: sets hasPrototype to false so that function entry will be added later
      * 
      * Begins a new scope in variable environment.
-     * Adds formals to variable environment:     addFormalsToVarEnv = true
+     * Adds formals to variable environment: addFormalsToVarEnv = true
      * Adds function entry to function environment if no prototype.
      * Sets addFormalsToVarEnv to false.
      * Analyzes body of function.
@@ -357,28 +357,54 @@ public class SemanticAnalyzer implements ASTVisitor {
         function.body().Accept(this);
         //End current scope in variable environment
         variableEnv.endScope();
-        
+        VariableEntry varentry = new VariableEntry(function.type());
+        //assumming that there will be no more than one "return" at a time
+        variableEnv.insert("return", varentry);
+
         return null;    //TODO: or return type of function?
     }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
-        for (int i=0; i<callexpression.size(); i++)
+        //check to see if function exists in func environment
+        FunctionEntry funcEntry = functionEnv.find(callexpression.name());
+        if (funcEntry == null) {
+            CompError.message(callexpression.line(), "Function " + callexpression.name() + " is not defined in this " +
+                              "scope");
+            return IntegerType.instance();
+        }
+        for (int i=0; i<callexpression.size(); i++) {
+            //check to see if the parameters used have the types they are supposed to have
             callexpression.elementAt(i).Accept(this);
+        }
         return null;
+        //CHECK TO SEE IF DONE
     }
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
-        for (int i=0; i<statement.size(); i++)
+        //check to see if function exists in func env.
+        FunctionEntry funcEntry = functionEnv.find(statement.name());
+        if (funcEntry == null) {
+            CompError.message(statement.line(), "Function " + statement.name() + " is not defined in this " +
+                              "scope");
+            return IntegerType.instance();
+        }
+        for (int i=0; i<statement.size(); i++) {
+            //check to see if the parameters used have the types they are supposed to have
             statement.elementAt(i).Accept(this);
+        }
         return null;
+        //CHECK TO SEE IF DONE
     }
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
         int i;
         for (i=0; i<variabledefs.size(); i++) {
+            //go through every variable definition and see if the //
+            // type and the variable exists in their corresponding environments//
             variabledefs.elementAt(i).Accept(this);
         }
         return null;
+        //CHECK TO SEE IF DONE
     }
     
     public Object VisitNewClassExpression(ASTNewClassExpression classexpression) {
@@ -386,7 +412,16 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (i=0; i<variabledefs.size(); i++) {
             variabledefs.elementAt(i).Accept(this);
         }*/
+        //check to see if the type is valid, in this case the type is a custom class type
+        Type classType = typeEnv.find(classexpression.type());
+        if (funcEntry == null) {
+            CompError.message(classexpression.line(), "Class " + classexpression.name() + " is not defined in this " +
+                    "scope");
+            return IntegerType.instance();
+        }
+
         return null;
+        //CHECK TO SEE IF DONE
     }
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
@@ -435,14 +470,18 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionDefinitions(ASTFunctionDefinitions fundefinitions) {
+        //DONE (Added galles rec for return statement)
         for (int i=0; i < fundefinitions.size(); i++)
             fundefinitions.elementAt(i).Accept(this);
         return null;
+
     }
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
         //TODO: Compare return type of specific function in environment and type of the expression being returned.
         //      Error if they don't match.
+
+
         return null;
     }
     
