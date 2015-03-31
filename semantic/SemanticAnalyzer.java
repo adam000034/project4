@@ -491,7 +491,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (returntype != returnEntry.type()) {
             CompError.message(returnstatement.line(), "Return statement type "
                               + "does not match with the type given to the function.");
-            return IntegerType.instance();
         }
         return null;
         //DONE//
