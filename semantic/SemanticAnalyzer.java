@@ -352,14 +352,15 @@ public class SemanticAnalyzer implements ASTVisitor {
             functionEnv.insert(function.name(), new FunctionEntry(typeEnv.find(function.type()), params));
         }
         addFormalsToVarEnv = false;
-        
+        Type typeofreturn = typeEnv.find(function.type());
+        VariableEntry varentry = new VariableEntry(typeofreturn);
+        //assumming that there will be no more than one "return" at a time
+        variableEnv.insert("return", varentry);
         //Analyze the body of the function, using modified variable environment
         function.body().Accept(this);
         //End current scope in variable environment
         variableEnv.endScope();
-        VariableEntry varentry = new VariableEntry(function.type());
-        //assumming that there will be no more than one "return" at a time
-        variableEnv.insert("return", varentry);
+
 
         return null;    //TODO: or return type of function?
     }   /* DONE */
@@ -414,8 +415,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         }*/
         //check to see if the type is valid, in this case the type is a custom class type
         Type classType = typeEnv.find(classexpression.type());
-        if (funcEntry == null) {
-            CompError.message(classexpression.line(), "Class " + classexpression.name() + " is not defined in this " +
+        if (classType == null) {
+            CompError.message(classexpression.line(), "Class type" + classexpression.type() + " is not defined in this " +
                     "scope");
             return IntegerType.instance();
         }
