@@ -483,9 +483,18 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
         //TODO: Compare return type of specific function in environment and type of the expression being returned.
         //      Error if they don't match.
-
-
+        ///////////
+        //retrieve the type of the function by looking up return in the variable environment
+        VariableEntry returnEntry = variableEnv.find("return");
+        //compare this type with the typeof returnstatement
+        Type returntype = (Type) returnstatement.value().Accept(this);
+        if (returntype != returnEntry.type()) {
+            CompError.message(returnstatement.line(), "Return statement type "
+                              + "does not match with the type given to the function.");
+            return IntegerType.instance();
+        }
         return null;
+        
     }
     
     /**
@@ -525,8 +534,8 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
     
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
-        varexpression.variable().Accept(this);
-        return null;
+        (Type) variableexpression = (Type) varexpression.variable().Accept(this);
+        return variableexpression;
     }
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
