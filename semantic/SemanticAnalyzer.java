@@ -494,7 +494,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             return IntegerType.instance();
         }
         return null;
-        
+        //DONE//
     }
     
     /**
@@ -536,6 +536,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitVariableExpression(ASTVariableExpression varexpression) {
         (Type) variableexpression = (Type) varexpression.variable().Accept(this);
         return variableexpression;
+        //DONE//
     }
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
