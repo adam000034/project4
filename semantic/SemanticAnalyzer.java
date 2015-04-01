@@ -31,7 +31,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             return IntegerType.instance();
         } else {
             //type is base type (i.e. int for int[][])
-            return checkType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
+            return CheckType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
         }        
     }   /* DONE */
     
@@ -53,8 +53,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return ArrayType entry for the specific array with base type "type" and the provided array
      * dimensionality.
      */
-    public Type checkType(String type, int arraydimension, int linenum) {
-        System.out.println("I am hitting checkType.");
+    public Type CheckType(String type, int arraydimension, int linenum) {
+        System.out.println("CheckType()");
         if (typeEnv.find(type) == null) {
             CompError.message(linenum, "Base Type does not exist.");
             return IntegerType.instance();
@@ -70,7 +70,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         //if type is not in type environment, recursive call to add it
         //will add previous dimensional ones if not in environment either
         if (entry == null && arraydimension != 0) {
-            Type prevDimTypeEntry = checkType(type, arraydimension - 1, linenum);
+            Type prevDimTypeEntry = CheckType(type, arraydimension - 1, linenum);
             ArrayType arrTypeInstance = new ArrayType(prevDimTypeEntry);
             typeEnv.insert(thisType, arrTypeInstance);
             return arrTypeInstance;
@@ -93,7 +93,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     /**
-     * Checks that types of left-hand side and right-hand side of the Assignement
+     * Checks that types of left-hand side and right-hand side of the Assignment
      * statement are the same.
      * 
      * @param assignstatement
@@ -104,10 +104,12 @@ public class SemanticAnalyzer implements ASTVisitor {
         
         if (lhs != rhs) {
             CompError.message(assignstatement.line(), "Lefthand side and righthand "
-                    + "side of and assignement statement must match.");
+                    + "side of and assignment statement must match.");
+            System.out.println("lhs: " + lhs + " rhs: " + rhs);
         }
         return null;
     }   /* DONE */
+
     
     /**
      * Checks base variable and checks if index is an integer.
@@ -174,6 +176,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         ClassType classType = new ClassType(variables);
         //Create new Type entry for class
         typeEnv.insert(asclass.name(), classType);
+        //functionEnv.insert(asclass.name(), new FunctionEntry(classType, new Vector<Type>()));
         return classType;
     }   /* DONE */
     
@@ -185,8 +188,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
-        System.out.println("IN Instance VariableDef");
-        return checkType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
+        System.out.println("VisitInstanceVariableDef()");
+        return CheckType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
     }   /* DONE */
     
     /**
@@ -195,8 +198,17 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param classvar
      */
     public Object VisitClassVariable(ASTClassVariable classvar){
-        classvar.base().Accept(this);
-        return null;
+        ClassType classType = (ClassType) classvar.base().Accept(this);
+        //get class type object
+        //look into variable environement
+        //does it have the variable? if not, error
+        VariableEntry varEntry = classType.variables().find(classvar.variable());
+        if (varEntry == null) {
+            CompError.message(classvar.line(), "Class type does not have variable " + classvar.variable());
+            return IntegerType.instance();
+        }
+        return varEntry.type();
+        
     }   /* DONE */
     
     /**
@@ -241,13 +253,13 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     /**
-     * Checks that formal is correct by calling helper method checkType()
+     * Checks that formal is correct by calling helper method CheckType()
      * 
      * @param formal
      * @return Type of formal. If Integer, may be error.
      */
     public Object VisitFormal(ASTFormal formal) {
-        Type type = checkType(formal.type(), formal.arraydimension(), formal.line());
+        Type type = CheckType(formal.type(), formal.arraydimension(), formal.line());
                
         //Add formals to variable environment if option is set to true
         if (addFormalsToVarEnv) {
@@ -394,7 +406,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             argType = (Type) callexpression.elementAt(i).Accept(this);
             if (funcEntry.formals().elementAt(i) != argType) {
                 CompError.message(callexpression.line(), "Argument " + i + " for function " + callexpression.name() + " does not match"
-                        + "its corresponding function parameter's type.");
+                        + " its corresponding function parameter's type.");
                 return IntegerType.instance();
             }
         }
@@ -415,16 +427,16 @@ public class SemanticAnalyzer implements ASTVisitor {
             argType = (Type) statement.elementAt(i).Accept(this);
             if (funcEntry.formals().elementAt(i) != argType) {
                 CompError.message(statement.line(), "Argument " + i + " for function " + statement.name() + " does not match"
-                        + "its corresponding function parameter's type.");
+                        + " its corresponding function parameter's type.");
             }
         }
         return null;
     }   /* DONE */
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
-        System.out.print("I am hitting visitinstancevariabledefs.");
+        System.out.println("VisitInstanceVariableDefs()");
         for (int i=0; i<variabledefs.size(); i++) {
-            //Check if type exists by calling VisitInstanceVariableDef() which calls checkType(), which
+            //Check if type exists by calling VisitInstanceVariableDef() which calls CheckType(), which
             //checks the type and adds the according n-dimensional array types if the base type exists.
             //No need to add variable to environment because it is added into a local environment in VisitClass()
             variabledefs.elementAt(i).Accept(this);
@@ -440,8 +452,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                     "scope");
             return IntegerType.instance();
         }
-
-        return null;
+        return classType;
     }   /* DONE */
     
     public Object VisitOperatorExpression(ASTOperatorExpression opexpression) {
@@ -535,7 +546,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     /**
-     * Checks if return type is an array. Calls checkType.
+     * Checks if return type is an array. Calls CheckType.
      * 
      * @param type
      * @param linenum
@@ -554,7 +565,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         type = type.substring(0, i+1);    //Base Type
         System.out.println("Base Type: " + type + " Dimensionality: " + dimensionality);
-        return checkType(type, dimensionality, linenum);
+        return CheckType(type, dimensionality, linenum);
     }
     
     public Object VisitUnaryOperatorExpression(ASTUnaryOperatorExpression unaryexpression) {
@@ -591,7 +602,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
         //Checks Type
-        Type type = checkType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
+        Type type = CheckType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
         //Check variable name
         if (variableEnv.find(varstatement.name()) != null) {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
@@ -627,7 +638,6 @@ public class SemanticAnalyzer implements ASTVisitor {
     }
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
-
         return IntegerType.instance();
     }   /* DONE */
 
