@@ -117,14 +117,14 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param arrayvariable
      */
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
-        arrayvariable.base().Accept(this);
+        ArrayType arrayType = (ArrayType) arrayvariable.base().Accept(this);
         Type typeOfIndex = (Type) arrayvariable.index().Accept(this);
         
         if (typeOfIndex != IntegerType.instance()) {
             CompError.message(arrayvariable.line(), "Index of an array must by of "
                     + "type integer.");
         }
-        return null;
+        return arrayType.type();
     }   /* DONE */
     
     /**
