@@ -117,14 +117,18 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param arrayvariable
      */
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
-        ArrayType arrayType = (ArrayType) arrayvariable.base().Accept(this);
+        System.out.println("VisitArrayVariable() LINE: "+arrayvariable.line() + " BASE: "+ arrayvariable.base());
+        Type type = (Type) arrayvariable.base().Accept(this);
         Type typeOfIndex = (Type) arrayvariable.index().Accept(this);
         
         if (typeOfIndex != IntegerType.instance()) {
             CompError.message(arrayvariable.line(), "Index of an array must by of "
                     + "type integer.");
         }
-        return arrayType.type();
+        if (type.getClass().equals(ArrayType.class)) {
+            return ((ArrayType) type).type();
+        }
+        return type;
     }   /* DONE */
     
     /**
@@ -162,7 +166,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             ASTInstanceVariableDef vardef;
             for (int i = 0; i < variabledefs.size(); i++) {
                 vardef = variabledefs.elementAt(i);
-                type = typeEnv.find(vardef.type());
+                type = CheckType(vardef.type(), vardef.arraydimension(), vardef.line());
                 //If there is a variable def of same name already in the class's variable enviro,
                 //give an error
                 if (variables.find(vardef.name()) != null) {
