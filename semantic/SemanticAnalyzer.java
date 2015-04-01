@@ -294,6 +294,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param function
      */
     public Object VisitFunction(ASTFunction function) {
+        System.out.println("VisitFunction()");
         boolean hasPrototype;
         //Analyze formal parameters & return type
         FunctionEntry funcEntry = functionEnv.find(function.name());
@@ -304,15 +305,16 @@ public class SemanticAnalyzer implements ASTVisitor {
             ASTFormals functionFormals = function.formals();    //list of ASTFormal objects
             
             //- Is the return type the same?
-            if (! funcEntry.result().equals(function.type())) {
-                CompError.message(function.line(), "A function's return type must match"
+            Type type = typeEnv.find(function.type());
+            if (! funcEntry.result().equals(type)) {
+                CompError.message(function.line(), "A function's return type must match "
                         + "with its function prototype's return type.");
                 return null;
             }
             
             //- Check number of formals
             if (funcEntryFormals.size() != functionFormals.size()) {
-                CompError.message(function.line(), "A function's formal parameters must match"
+                CompError.message(function.line(), "A function's formal parameters must match "
                         + "with its function prototype's formal parameters.");
                 return null;
             }
@@ -357,7 +359,11 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         //Add function entry to function environment if there is no prototype
         if (!hasPrototype) {
-            functionEnv.insert(function.name(), new FunctionEntry(typeEnv.find(function.type()), params));
+            Type type = ReturnTypeHelper(function.type(), function.line());
+            if (type == null) {
+                return null;
+            }
+            functionEnv.insert(function.name(), new FunctionEntry(type, params));
         }
         addFormalsToVarEnv = false;
         Type typeofreturn = typeEnv.find(function.type());
@@ -374,6 +380,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
+        System.out.println("VisitFunctionCallExpression");
         //check to see if function exists in func environment
         FunctionEntry funcEntry = functionEnv.find(callexpression.name());
         if (funcEntry == null) {
@@ -395,6 +402,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
+        System.out.println("VisitFunctionCallStatement()");
         //check to see if function exists in func env.
         FunctionEntry funcEntry = functionEnv.find(statement.name());
         if (funcEntry == null) {
@@ -510,6 +518,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param prototype
      */
     public Object VisitPrototype(ASTPrototype prototype) {
+        System.out.println("VisitPrototype()");
         //Add prototype to function environment
         Vector<Type> params = new Vector<Type>();
         if (prototype.formals() != null) {
@@ -519,9 +528,34 @@ public class SemanticAnalyzer implements ASTVisitor {
                 params.add(paramType);
             }
         }
+        Type type = ReturnTypeHelper(prototype.type(), prototype.line());
+        functionEnv.insert(prototype.name(), new FunctionEntry(type, params));
         
         return null;
     }   /* DONE */
+    
+    /**
+     * Checks if return type is an array. Calls checkType.
+     * 
+     * @param type
+     * @param linenum
+     * @return
+     */
+    public Type ReturnTypeHelper(String type, int linenum) {
+        System.out.println("ReturnTypeHeler()");
+        int dimensionality = 0;
+        int i;
+        for (i = type.length() - 1; i >= 0; i--) {
+            if (type.charAt(i) == ']') {
+                dimensionality ++;
+            } else if (type.charAt(i) != '[') {
+                break;
+            }
+        }
+        type = type.substring(0, i+1);    //Base Type
+        System.out.println("Base Type: " + type + " Dimensionality: " + dimensionality);
+        return checkType(type, dimensionality, linenum);
+    }
     
     public Object VisitUnaryOperatorExpression(ASTUnaryOperatorExpression unaryexpression) {
         //Deal with logical "NOT"
