@@ -160,7 +160,6 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         
         VariableEnvironment variables = new VariableEnvironment();
-        
         ASTInstanceVariableDefs variabledefs = asclass.variabledefs();
         Type type;
         if (variabledefs != null) {
@@ -206,9 +205,10 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param classvar
      */
     public Object VisitClassVariable(ASTClassVariable classvar){
-        ////System.out.println("VisitClassVariable() LINE: "+classvar.line() + " BASE: "+ classvar.base());
+        System.out.println("VisitClassVariable() LINE: "+classvar.line() + " BASE: "+ classvar.base());
         //ClassType classType = (ClassType) classvar.base().Accept(this);
         Type type = (Type) classvar.base().Accept(this);
+
         /*if (type.getClass().equals(ArrayType.class)) {
             while (type.getClass().equals(ArrayType.class)) {
                 type = ((ArrayType) type).type();
@@ -220,9 +220,10 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
         ClassType classType = (ClassType) type;
         //get class type object
-        //look into variable environement
+        //look into variable environment
         //does it have the variable? if not, error
         VariableEntry varEntry = classType.variables().find(classvar.variable());
+        System.out.println("  VisitClassVariable(): "+classvar.variable());
         if (varEntry == null) {
             CompError.message(classvar.line(), "Class type does not have variable " + classvar.variable());
             return IntegerType.instance();
@@ -406,7 +407,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
-        ////System.out.println("VisitFunctionCallExpression");
+        //System.out.println("VisitFunctionCallExpression() LINE: " + callexpression.line());
         //check to see if function exists in func environment
         FunctionEntry funcEntry = functionEnv.find(callexpression.name());
         if (funcEntry == null) {
@@ -434,7 +435,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
-        ////System.out.println("VisitFunctionCallStatement()");
+        //System.out.println("VisitFunctionCallStatement() LINE: " + statement.line());
         //check to see if function exists in func env.
         FunctionEntry funcEntry = functionEnv.find(statement.name());
         if (funcEntry == null) {
@@ -454,6 +455,10 @@ public class SemanticAnalyzer implements ASTVisitor {
                 CompError.message(statement.line(), "Argument " + i + " for function " + statement.name() + " does not match"
                         + " its corresponding function parameter's type.");
             }
+        }
+        //Check Return Type - if not void, don't allow
+        if (funcEntry.result() != VoidType.instance()) {
+            CompError.message(statement.line(), statement.name() + " is not a void function.");
         }
         return null;
     }   /* DONE */
@@ -496,6 +501,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
                     CompError.message(opexpression.line(), "+,-,*,/ arithmetic binary "
                             + "operators require integer operands");
+                    System.out.println("LHS: " + lhs + " RHS: " + rhs);
                 }
                 return IntegerType.instance();
                 
@@ -607,7 +613,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             case ASTUnaryOperatorExpression.NOT:
                 if (operand != BooleanType.instance()) {
                     CompError.message(unaryexpression.line(), "NOT operators requires "
-                            + "a boolean operand");
+                            + "a boolean operand.");
                     return IntegerType.instance();
                 }
                 return BooleanType.instance();
@@ -669,6 +675,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
 
     public Object VisitBaseVariable(ASTBaseVariable base) {
+        System.out.println("VisitBaseVariable() LINE: "+base.line() + " BASE: "+ base.name());
         VariableEntry baseEntry = variableEnv.find(base.name());
         if (baseEntry == null) {
             CompError.message(base.line(), "Variable " + base.name() + " is not defined in this " +

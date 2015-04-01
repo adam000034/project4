@@ -8,7 +8,7 @@ class C1 {
 
 void main() {
   int x;
-  boolean y;
+  //boolean y;
   NotAType z;            /* Type z note defined */
   C1 myClass;
 
