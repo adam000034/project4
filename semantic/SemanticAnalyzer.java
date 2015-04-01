@@ -54,6 +54,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * dimensionality.
      */
     public Type insertArrayType(String type, int arraydimension, int linenum) {
+        System.out.println("I am hitting insertArrayType.");
         if (typeEnv.find(type) == null) {
             CompError.message(linenum, "Base Type does not exist.");
             return IntegerType.instance();
@@ -62,7 +63,11 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (int i = 0; i < arraydimension; i++) {
             thisType += "[]";
         }
-        ArrayType entry = (ArrayType) typeEnv.find(thisType);
+        //I see potential problems here
+        ArrayType entry = new ArrayType(typeEnv.find(thisType));
+
+
+
         //if type is not in type environment, recursive call to add it
         //will add previous dimensional ones if not in environment either
         if (entry == null) {
@@ -181,7 +186,18 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
-        return insertArrayType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
+        //add the variable here to var environment since insertArrayType does not handle it
+        //variableEnv.insert(formal.name(), new VariableEntry(type));
+        //array[i][j], if array[i], no longer the same variable so no need to keep track of it
+        Object returnobject;
+        ////
+        System.out.println("IN Instance VariableDef");
+        returnobject = insertArrayType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
+        Type instancevariableType = typeEnv.find(variabledef.type());
+        variableEnv.insert(variabledef.name(), new VariableEntry(instancevariableType));
+        System.out.println("NAME " + variabledef.name());
+
+        return returnobject;
         //TODO: should we even be returning anything?
         //this may apply to all but we need to store the bracket count to be
         //retrieved later from the parse table
@@ -221,6 +237,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param emptystate
      */
     public Object VisitEmptyStatement(ASTEmptyStatement emptystate) {
+
         return null;
     }   /* DONE */
         
@@ -412,6 +429,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
+        System.out.print("I am hitting visitinstancevariabledefs.");
         for (int i=0; i<variabledefs.size(); i++) {
             //Check if type exists by calling VisitInstanceVariableDef() which calls insertArrayType(), which
             //checks the type and adds the according n-dimensional array types if the base type exists.
@@ -554,7 +572,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
         //Checks Type
-        insertArrayType(varstatement.name(), varstatement.arraydimension(), varstatement.line());
+        insertArrayType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
         //Check variable name
         if (variableEnv.find(varstatement.name()) != null) {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
@@ -583,10 +601,12 @@ public class SemanticAnalyzer implements ASTVisitor {
             variableEnv.endScope();
         }
         return null;
+        /* DONE */
 
     }
 
     public Object VisitIntegerLiteral(ASTIntegerLiteral literal) {
+
         return IntegerType.instance();
     }   /* DONE */
 
@@ -616,5 +636,5 @@ public class SemanticAnalyzer implements ASTVisitor {
         }
 
         return null;
-    }
+    }   //DONE (do not have to account for () right?
 }
