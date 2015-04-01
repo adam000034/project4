@@ -31,7 +31,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             return IntegerType.instance();
         } else {
             //type is base type (i.e. int for int[][])
-            return insertArrayType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
+            return checkType(newarrayexpression.type(), newarrayexpression.arraydimension(), newarrayexpression.line());
         }        
     }   /* DONE */
     
@@ -53,8 +53,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return ArrayType entry for the specific array with base type "type" and the provided array
      * dimensionality.
      */
-    public Type insertArrayType(String type, int arraydimension, int linenum) {
-        System.out.println("I am hitting insertArrayType.");
+    public Type checkType(String type, int arraydimension, int linenum) {
+        System.out.println("I am hitting checkType.");
         if (typeEnv.find(type) == null) {
             CompError.message(linenum, "Base Type does not exist.");
             return IntegerType.instance();
@@ -64,14 +64,13 @@ public class SemanticAnalyzer implements ASTVisitor {
             thisType += "[]";
         }
         //I see potential problems here
-        ArrayType entry = new ArrayType(typeEnv.find(thisType));
-
-
+        //ArrayType entry = new ArrayType(typeEnv.find(thisType));
+        Type entry = (Type) typeEnv.find(thisType);
 
         //if type is not in type environment, recursive call to add it
         //will add previous dimensional ones if not in environment either
-        if (entry == null) {
-            ArrayType prevDimTypeEntry = (ArrayType) insertArrayType(type, arraydimension - 1, linenum);
+        if (entry == null && arraydimension != 0) {
+            Type prevDimTypeEntry = checkType(type, arraydimension - 1, linenum);
             ArrayType arrTypeInstance = new ArrayType(prevDimTypeEntry);
             typeEnv.insert(thisType, arrTypeInstance);
             return arrTypeInstance;
@@ -186,22 +185,8 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
-        //add the variable here to var environment since insertArrayType does not handle it
-        //variableEnv.insert(formal.name(), new VariableEntry(type));
-        //array[i][j], if array[i], no longer the same variable so no need to keep track of it
-        Object returnobject;
-        ////
         System.out.println("IN Instance VariableDef");
-        returnobject = insertArrayType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
-        Type instancevariableType = typeEnv.find(variabledef.type());
-        variableEnv.insert(variabledef.name(), new VariableEntry(instancevariableType));
-        System.out.println("NAME " + variabledef.name());
-
-        return returnobject;
-        //TODO: should we even be returning anything?
-        //this may apply to all but we need to store the bracket count to be
-        //retrieved later from the parse table
-        //what do we store here
+        return checkType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
     }   /* DONE */
     
     /**
@@ -256,13 +241,13 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     /**
-     * Checks that formal is correct by calling helper method insertArrayType()
+     * Checks that formal is correct by calling helper method checkType()
      * 
      * @param formal
      * @return Type of formal. If Integer, may be error.
      */
     public Object VisitFormal(ASTFormal formal) {
-        Type type = insertArrayType(formal.type(), formal.arraydimension(), formal.line());
+        Type type = checkType(formal.type(), formal.arraydimension(), formal.line());
                
         //Add formals to variable environment if option is set to true
         if (addFormalsToVarEnv) {
@@ -431,7 +416,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
         System.out.print("I am hitting visitinstancevariabledefs.");
         for (int i=0; i<variabledefs.size(); i++) {
-            //Check if type exists by calling VisitInstanceVariableDef() which calls insertArrayType(), which
+            //Check if type exists by calling VisitInstanceVariableDef() which calls checkType(), which
             //checks the type and adds the according n-dimensional array types if the base type exists.
             //No need to add variable to environment because it is added into a local environment in VisitClass()
             variabledefs.elementAt(i).Accept(this);
@@ -572,11 +557,13 @@ public class SemanticAnalyzer implements ASTVisitor {
     
     public Object VisitVariableDefStatement(ASTVariableDefStatement varstatement) {
         //Checks Type
-        insertArrayType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
+        Type type = checkType(varstatement.type(), varstatement.arraydimension(), varstatement.line());
         //Check variable name
         if (variableEnv.find(varstatement.name()) != null) {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
                     varstatement.name() + ".");
+        } else {
+            variableEnv.insert(varstatement.name(), new VariableEntry(type));
         }
         return null;
     }   /* DONE */
