@@ -54,7 +54,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * dimensionality.
      */
     public Type CheckType(String type, int arraydimension, int linenum) {
-        ////System.out.println("CheckType()");
+        //////System.out.println("CheckType()");
         if (typeEnv.find(type) == null) {
             CompError.message(linenum, "Base Type does not exist.");
             return IntegerType.instance();
@@ -105,7 +105,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (lhs != rhs) {
             CompError.message(assignstatement.line(), "Lefthand side and righthand "
                     + "side of an assignment statement must match.");
-            ////System.out.println("lhs: " + lhs + " rhs: " + rhs);
+            //////System.out.println("lhs: " + lhs + " rhs: " + rhs);
         }
         return null;
     }   /* DONE */
@@ -117,7 +117,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param arrayvariable
      */
     public Object VisitArrayVariable(ASTArrayVariable arrayvariable) {
-        ////System.out.println("VisitArrayVariable() LINE: "+arrayvariable.line() + " BASE: "+ arrayvariable.base());
+        //////System.out.println("VisitArrayVariable() LINE: "+arrayvariable.line() + " BASE: "+ arrayvariable.base());
         Type type = (Type) arrayvariable.base().Accept(this);
         Type typeOfIndex = (Type) arrayvariable.index().Accept(this);
         
@@ -195,7 +195,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public Object VisitInstanceVariableDef(ASTInstanceVariableDef variabledef)
     {
-        ////System.out.println("VisitInstanceVariableDef()");
+        //////System.out.println("VisitInstanceVariableDef()");
         return CheckType(variabledef.type(), variabledef.arraydimension(), variabledef.line());
     }   /* DONE */
     
@@ -205,7 +205,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param classvar
      */
     public Object VisitClassVariable(ASTClassVariable classvar){
-        System.out.println("VisitClassVariable() LINE: "+classvar.line() + " BASE: "+ classvar.base());
+        //System.out.println("VisitClassVariable() LINE: "+classvar.line() + " BASE: "+ classvar.base());
         //ClassType classType = (ClassType) classvar.base().Accept(this);
         Type type = (Type) classvar.base().Accept(this);
 
@@ -223,7 +223,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         //look into variable environment
         //does it have the variable? if not, error
         VariableEntry varEntry = classType.variables().find(classvar.variable());
-        System.out.println("  VisitClassVariable(): "+classvar.variable());
+        //System.out.println("  VisitClassVariable(): "+classvar.variable());
         if (varEntry == null) {
             CompError.message(classvar.line(), "Class type does not have variable " + classvar.variable());
             return IntegerType.instance();
@@ -327,7 +327,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param function
      */
     public Object VisitFunction(ASTFunction function) {
-        ////System.out.println("VisitFunction()");
+        //////System.out.println("VisitFunction()");
         boolean hasPrototype;
 
         //Analyze formal parameters & return type
@@ -348,17 +348,18 @@ public class SemanticAnalyzer implements ASTVisitor {
             //- Check number of formals
             if (funcEntryFormals.size() != functionFormals.size()) {
                 CompError.message(function.line(), "A function's formal parameters must match "
-                        + "with its function prototype's formal parameters.");
+                        + "with its function prototype's formal parameters. - Differing number of formals.");
             } else {
                 //- Are the formals the same? -- type
                 for (int i = 0; i < funcEntryFormals.size(); i++) {
-                    Type functionFormalType = typeEnv.find(functionFormals.elementAt(i).type());
+                    Type functionFormalType = CheckType(functionFormals.elementAt(i).type(), 
+                            functionFormals.elementAt(i).arraydimension(), functionFormals.elementAt(i).line());
                     //Check if type doesn't equal it's counterpart in its function prototype
                     //-- don't have to check if type exists because prototype would have done this, just
                     //   comparing types
                     if (! (funcEntryFormals.elementAt(i).equals(functionFormalType))) {
                         CompError.message(function.line(), "A function's formal parameters must match "
-                                + "with its function prototype's formal parameters.");
+                                + "with its function prototype's formal parameters. - Different formal types.");
                     }
                 }
             }
@@ -407,7 +408,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
-        //System.out.println("VisitFunctionCallExpression() LINE: " + callexpression.line());
+        ////System.out.println("VisitFunctionCallExpression() LINE: " + callexpression.line());
         //check to see if function exists in func environment
         FunctionEntry funcEntry = functionEnv.find(callexpression.name());
         if (funcEntry == null) {
@@ -435,7 +436,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitFunctionCallStatement(ASTFunctionCallStatement statement) {
-        //System.out.println("VisitFunctionCallStatement() LINE: " + statement.line());
+        ////System.out.println("VisitFunctionCallStatement() LINE: " + statement.line());
         //check to see if function exists in func env.
         FunctionEntry funcEntry = functionEnv.find(statement.name());
         if (funcEntry == null) {
@@ -464,7 +465,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitInstanceVariableDefs(ASTInstanceVariableDefs variabledefs) {
-        ////System.out.println("VisitInstanceVariableDefs()");
+        //////System.out.println("VisitInstanceVariableDefs()");
         for (int i=0; i<variabledefs.size(); i++) {
             //Check if type exists by calling VisitInstanceVariableDef() which calls CheckType(), which
             //checks the type and adds the according n-dimensional array types if the base type exists.
@@ -501,7 +502,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (lhs != IntegerType.instance() || rhs != IntegerType.instance()) {
                     CompError.message(opexpression.line(), "+,-,*,/ arithmetic binary "
                             + "operators require integer operands");
-                    System.out.println("LHS: " + lhs + " RHS: " + rhs);
+                    //System.out.println("LHS: " + lhs + " RHS: " + rhs);
                 }
                 return IntegerType.instance();
                 
@@ -539,14 +540,19 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitReturnStatement(ASTReturnStatement returnstatement) {
-        //System.out.println("VisitReturnStatement() LINE: " + returnstatement.line());
+        ////System.out.println("VisitReturnStatement() LINE: " + returnstatement.line());
         //Compare return type of specific function in environment and type of the expression being returned.
         //Error if they don't match.
         //retrieve the type of the function by looking up return in the variable environment
         VariableEntry returnEntry = variableEnv.find("return");
         //compare this type with the typeof returnstatement
-        Type returntype = (Type) returnstatement.value().Accept(this);
-        //System.out.println("RETURN: "+returntype + " " + returnEntry.type());
+        Type returntype;
+        if (returnstatement.value() != null) {
+            returntype = (Type) returnstatement.value().Accept(this);
+        } else {
+            returntype = VoidType.instance();
+        }
+        ////System.out.println("RETURN: "+returntype + " " + returnEntry.type());
         if (returntype != returnEntry.type()) {
             CompError.message(returnstatement.line(), "Return statement type "
                               + "does not match with the type given to the function.");
@@ -562,7 +568,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @param prototype
      */
     public Object VisitPrototype(ASTPrototype prototype) {
-        ////System.out.println("VisitPrototype()");
+        //////System.out.println("VisitPrototype()");
         //Add prototype to function environment
         Vector<Type> params = new Vector<Type>();
         if (prototype.formals() != null) {
@@ -586,7 +592,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      * @return
      */
     public Type ReturnTypeHelper(String type, int linenum) {
-        ////System.out.println("ReturnTypeHeler()");
+        //////System.out.println("ReturnTypeHeler()");
         int dimensionality = 0;
         int i;
         for (i = type.length() - 1; i >= 0; i--) {
@@ -597,7 +603,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }
         type = type.substring(0, i+1);    //Base Type
-        ////System.out.println("Base Type: " + type + " Dimensionality: " + dimensionality);
+        //////System.out.println("Base Type: " + type + " Dimensionality: " + dimensionality);
         return CheckType(type, dimensionality, linenum);
     }
     
@@ -639,7 +645,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         //Check variable name
         if (variableEnv.find(varstatement.name()) != null) {
             CompError.message(varstatement.line(), "Duplicate local variable " + 
-                    varstatement.name() + ".");
+                    varstatement.name() + ". ");
         } else {
             variableEnv.insert(varstatement.name(), new VariableEntry(type));
         }
@@ -653,7 +659,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitWhileStatement(ASTWhileStatement whilestatement) {
-        ////System.out.println("While (test/body)");
+        //////System.out.println("While (test/body)");
         Type test = (Type) whilestatement.test().Accept(this);
 
         if (test != BooleanType.instance()) {
@@ -675,7 +681,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
 
     public Object VisitBaseVariable(ASTBaseVariable base) {
-        System.out.println("VisitBaseVariable() LINE: "+base.line() + " BASE: "+ base.name());
+        //System.out.println("VisitBaseVariable() LINE: "+base.line() + " BASE: "+ base.name());
         VariableEntry baseEntry = variableEnv.find(base.name());
         if (baseEntry == null) {
             CompError.message(base.line(), "Variable " + base.name() + " is not defined in this " +
