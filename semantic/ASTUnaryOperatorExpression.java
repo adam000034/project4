@@ -22,6 +22,8 @@ public class ASTUnaryOperatorExpression extends ASTExpression {
 	    operator_ = NOT;
 	else 
 	    operator_ = BAD_OPERATOR;
+        line_ = line;
+
     }
 
     public ASTExpression operand() {

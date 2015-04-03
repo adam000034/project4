@@ -249,7 +249,7 @@ ASTFunctionCallStatement funccallstate = null; ASTStatement params = null; ASTVa
 	| (bvariable = variable(
 	/* MAKE SURE TO MAKE CHANGES, was semicolon before but now is emptystatement because they mean the same thing */
 	passedinvariable))
-	) {if (avariable == null) {variableforfollowsvariablenames = bvariable;} else {variableforfollowsvariablenames = avariable;};}
+	) {if (bvariable != null) {variableforfollowsvariablenames = bvariable;} else if (avariable==null) {variableforfollowsvariablenames = passedinvariable;} else {variableforfollowsvariablenames = avariable;}}
 	(((expression = followsvariablenames(variableforfollowsvariablenames)) | (params = functioncall(token)))?)
 	emptystatement() {	
 		/*This handles the case: int a; */

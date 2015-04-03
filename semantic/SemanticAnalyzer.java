@@ -215,7 +215,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
         }*/
         if (!type.getClass().equals(ClassType.class)) {
-            CompError.message(classvar.line(), "Base is not a class type." + type);
+            CompError.message(classvar.line(), "Base is not a class type.");
             return IntegerType.instance();
         }
         ClassType classType = (ClassType) type;
@@ -346,9 +346,12 @@ public class SemanticAnalyzer implements ASTVisitor {
             }
             
             //- Check number of formals
-            if (funcEntryFormals.size() != functionFormals.size()) {
+            if (funcEntryFormals.size() < functionFormals.size()) {
                 CompError.message(function.line(), "A function's formal parameters must match "
-                        + "with its function prototype's formal parameters. - Differing number of formals.");
+                        + "with its function prototype's formal parameters. - Too many formals.");
+            } else if (funcEntryFormals.size() > functionFormals.size()) {
+                CompError.message(function.line(), "A function's formal parameters must match "
+                        + "with its function prototype's formal parameters. - Too few formals.");
             } else {
                 //- Are the formals the same? -- type
                 for (int i = 0; i < funcEntryFormals.size(); i++) {
@@ -416,9 +419,14 @@ public class SemanticAnalyzer implements ASTVisitor {
                               "scope");
             return IntegerType.instance();
         }
-        if (callexpression.size() != funcEntry.formals().size()) {
-            CompError.message(callexpression.line(), "A function call's actual args must match "
-                    + "with the function's formal parameters.");
+        if (callexpression.size() < funcEntry.formals().size()) {
+            CompError.message(callexpression.line(), "Function call has too few actual parameters.");
+            
+            return IntegerType.instance();
+        }
+        if (callexpression.size() > funcEntry.formals().size()) {
+            CompError.message(callexpression.line(), "Function call has too many actual parameters.");
+            
             return IntegerType.instance();
         }
         
@@ -443,9 +451,13 @@ public class SemanticAnalyzer implements ASTVisitor {
             CompError.message(statement.line(), "Function " + statement.name() + " is not defined in this " +
                               "scope");
         }
-        if (statement.size() != funcEntry.formals().size()) {
-            CompError.message(statement.line(), "A function call's actual args must match "
-                    + "with the function's formal parameters.");
+        if (statement.size() < funcEntry.formals().size()) {
+            CompError.message(statement.line(), "Function call has too few actual parameters.");
+
+            return null;
+        }
+        if (statement.size() > funcEntry.formals().size()) {
+            CompError.message(statement.line(), "Function call has too many actual parameters.");
             return null;
         }
         Type argType;
@@ -628,9 +640,11 @@ public class SemanticAnalyzer implements ASTVisitor {
     }   /* DONE */
     
     public Object VisitStatements(ASTStatements statements) {
+        variableEnv.beginScope();
         for (int i = 0; i<statements.size(); i++) {
             statements.elementAt(i).Accept(this);
         }
+        variableEnv.endScope();
         return null;
     }   /* DONE */
     

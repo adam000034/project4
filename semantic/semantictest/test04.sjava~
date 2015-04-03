@@ -8,7 +8,7 @@ class C1 {
 
 void main() {
   int x;
-  //boolean y;
+  boolean y;
   NotAType z;            /* Type z note defined */
   C1 myClass;
 
@@ -18,11 +18,11 @@ void main() {
   y = (x + 4 > 3) && !x;  /* Type mismatch on negation */
   if (x + 2)             /* if test not a boolean */
      x++;
-  if (myClass.x) myClass.y++; /* No errors this line */
-  if (myClass.y)         /* if test not a boolean */
-      myClass.x++;       /* Can't increment a boolean variable */
-  while (3) x++;         /* While test must be a boolean */
-  while (Read()) x++;    /* While test must be a boolean */
-  while (Read() > 3) x++;    /* no errors */
+//  if (myClass.x) myClass.y++; /* No errors this line */
+//  if (myClass.y)         /* if test not a boolean */
+//      myClass.x++;       /* Can't increment a boolean variable */
+//  while (3) x++;         /* While test must be a boolean */
+//  while (Read()) x++;    /* While test must be a boolean */
+//  while (Read() > 3) x++;    /* no errors */
   
 }
