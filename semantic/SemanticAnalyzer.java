@@ -88,7 +88,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         for (int i = 0; i <classes.size(); i++) {
             classes.elementAt(i).Accept(this);
         }
-        //TODO: do we need to start a new function environment for each class?
+
         return null;
     }   /* DONE */
     
@@ -407,7 +407,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         variableEnv.endScope();
 
 
-        return null;    //TODO: or return type of function?
+        return null;   
     }   /* DONE */
     
     public Object VisitFunctionCallExpression(ASTFunctionCallExpression callexpression) {
